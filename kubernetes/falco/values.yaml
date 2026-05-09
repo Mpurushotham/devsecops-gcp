@@ -1,0 +1,82 @@
+# Falco Helm values for GKE Standard node pools.
+# Deploy with:
+#   helm repo add falcosecurity https://falcosecurity.github.io/charts
+#   helm upgrade --install falco falcosecurity/falco \
+#     --namespace falco-system --create-namespace \
+#     -f kubernetes/falco/values.yaml \
+#     -f kubernetes/falco/custom-rules/gcp-specific.yaml \
+#     -f kubernetes/falco/custom-rules/crypto-mining.yaml \
+#     -f kubernetes/falco/custom-rules/data-exfiltration.yaml \
+#     -f kubernetes/falco/custom-rules/privilege-escalation.yaml
+
+image:
+  tag: "0.38.2"
+
+# Use eBPF driver on GKE COS nodes (no kernel module required)
+driver:
+  kind: ebpf
+  ebpf:
+    hostNetwork: true
+
+# Load built-in rules plus our custom rule files
+falco:
+  rules_file:
+    - /etc/falco/falco_rules.yaml
+    - /etc/falco/falco_rules.local.yaml
+    - /etc/falco/rules.d
+  plugins: []
+  load_plugins: []
+
+  # Output to stdout (captured by GKE log driver → Cloud Logging)
+  json_output: true
+  json_include_output_property: true
+  log_stderr: true
+  log_syslog: false
+
+  priority: WARNING
+
+  # Tune noisy built-in rules
+  syscall_event_drops:
+    actions:
+      - log
+      - alert
+    rate: 0.03333
+    max_burst: 10
+
+customRules: {}
+
+# Falcosidekick — routes events to Pub/Sub via Workload Identity
+falcosidekick:
+  enabled: true
+  image:
+    tag: "2.29.0"
+  config:
+    gcp:
+      pubsub:
+        projectid: ""    # Set via --set falcosidekick.config.gcp.pubsub.projectid=PROJECT_ID
+        topic: "falco-alerts"
+        credentials: ""  # Empty = use Workload Identity (annotate the KSA)
+    prioritythreshold: WARNING
+    customfields: "cluster:GKE_CLUSTER_NAME,environment:ENV"
+
+  # Annotate the Falcosidekick KSA for Workload Identity
+  podAnnotations:
+    iam.gke.io/gcp-service-account: "falco-sidekick@PROJECT_ID.iam.gserviceaccount.com"
+
+  serviceAccount:
+    annotations:
+      iam.gke.io/gcp-service-account: "falco-sidekick@PROJECT_ID.iam.gserviceaccount.com"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+tolerations:
+  - key: node-pool
+    operator: Equal
+    value: system
+    effect: NoSchedule

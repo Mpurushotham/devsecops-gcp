@@ -1,0 +1,89 @@
+name: "01 - IaC Security Scanning"
+
+on:
+  pull_request:
+    paths:
+      - "terraform/**"
+  push:
+    branches: [main]
+    paths:
+      - "terraform/**"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  tfsec:
+    name: "tfsec"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: terraform
+          format: sarif
+          sarif_file: tfsec-results.sarif
+          soft_fail: false
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: tfsec-results.sarif
+          category: tfsec
+
+  checkov:
+    name: "Checkov"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: terraform
+          framework: terraform
+          output_format: sarif
+          output_file_path: checkov-results.sarif
+          soft_fail: false
+          quiet: true
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: checkov-results.sarif
+          category: checkov
+
+  terrascan:
+    name: "Terrascan"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tenable/terrascan-action@main
+        with:
+          iac_type: terraform
+          policy_type: gcp
+          iac_dir: terraform
+          sarif_upload: true
+          non_recursive: false
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: terrascan.sarif
+          category: terrascan
+
+  infracost:
+    name: "Cost Estimation"
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+      - name: Generate Infracost diff
+        run: |
+          infracost breakdown \
+            --path=terraform/environments/dev \
+            --format=json \
+            --out-file=/tmp/infracost.json
+      - uses: infracost/actions/comment@v3
+        with:
+          path: /tmp/infracost.json
+          behavior: update

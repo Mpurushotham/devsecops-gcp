@@ -1,0 +1,58 @@
+name: "09 - Release"
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+  packages: write
+
+jobs:
+  release:
+    name: "Create Release with SBOM"
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Authenticate to GCP via WIF
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.IMAGE_PUSH_SA }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@v0
+
+      - name: Generate SBOM for release
+        run: |
+          syft dir:. \
+            --output spdx-json=release-sbom.spdx.json \
+            --output cyclonedx-json=release-sbom.cyclonedx.json
+
+      - name: Attest release SBOM
+        uses: actions/attest-sbom@v1
+        with:
+          subject-path: release-sbom.spdx.json
+          sbom-path: release-sbom.spdx.json
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-sbom.spdx.json
+            release-sbom.cyclonedx.json
+          generate_release_notes: true
+          make_latest: true

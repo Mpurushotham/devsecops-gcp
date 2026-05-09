@@ -1,0 +1,53 @@
+name: "03 - SCA (Software Composition Analysis)"
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  trivy-filesystem:
+    name: "Trivy — Filesystem"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-fs-results.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-fs-results.sarif
+          category: trivy-filesystem
+
+  owasp-dependency-check:
+    name: "OWASP Dependency-Check"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: devsecops-gcp
+          path: cloud-functions/
+          format: SARIF
+          args: >
+            --enableRetired
+            --failOnCVSS 7
+            --suppression .dependency-check-suppression.xml
+        env:
+          JAVA_HOME: /opt/jdk
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: reports/dependency-check-report.sarif
+          category: owasp-dependency-check

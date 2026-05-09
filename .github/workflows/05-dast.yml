@@ -1,0 +1,60 @@
+name: "05 - DAST (Dynamic Application Security Testing)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: "Target URL to scan"
+        required: true
+        default: "https://staging.example.com"
+  schedule:
+    # Run weekly against staging after deploy
+    - cron: "0 2 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+  issues: write
+
+jobs:
+  zap-baseline:
+    name: "OWASP ZAP — Baseline Scan"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: ${{ github.event.inputs.target_url || 'https://staging.example.com' }}
+          rules_file_name: .zap/rules.tsv
+          cmd_options: "-a -j"
+          fail_action: true
+          allow_issue_writing: true
+
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: zap-results.sarif
+          category: zap-baseline
+
+  zap-api-scan:
+    name: "OWASP ZAP — API Scan"
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ZAP API Scan
+        uses: zaproxy/action-api-scan@v0.7.0
+        with:
+          target: ${{ github.event.inputs.target_url }}/openapi.json
+          format: openapi
+          fail_action: true
+          cmd_options: "-a"
+
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: zap-results.sarif
+          category: zap-api

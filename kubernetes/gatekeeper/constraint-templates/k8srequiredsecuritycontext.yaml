@@ -1,0 +1,39 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredsecuritycontext
+  annotations:
+    description: Requires allowPrivilegeEscalation=false and drops ALL capabilities.
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredSecurityContext
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8srequiredsecuritycontext
+
+        violation[{"msg": msg}] {
+          c := input_containers[_]
+          c.securityContext.allowPrivilegeEscalation != false
+          msg := sprintf("Container '%v' must set allowPrivilegeEscalation=false", [c.name])
+        }
+
+        violation[{"msg": msg}] {
+          c := input_containers[_]
+          not has_drop_all(c)
+          msg := sprintf("Container '%v' must drop ALL capabilities", [c.name])
+        }
+
+        has_drop_all(c) {
+          drops := {cap | cap := c.securityContext.capabilities.drop[_]}
+          "ALL" in drops
+        }
+
+        input_containers[c] {
+          c := input.review.object.spec.containers[_]
+        }
+        input_containers[c] {
+          c := input.review.object.spec.initContainers[_]
+        }

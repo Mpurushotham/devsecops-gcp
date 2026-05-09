@@ -1,0 +1,56 @@
+customRules:
+  data_exfiltration_rules.yaml: |-
+    - list: sensitive_file_paths
+      items:
+        - /etc/shadow
+        - /etc/sudoers
+        - /root/.ssh/id_rsa
+        - /etc/kubernetes/admin.conf
+        - /var/run/secrets/kubernetes.io/serviceaccount/token
+
+    - rule: Sensitive File Read in Container
+      desc: Detects reads from sensitive credential or config files inside containers.
+      condition: >
+        open_read and
+        container and
+        fd.name in (sensitive_file_paths)
+      output: >
+        Sensitive file accessed in container
+        (file=%fd.name proc=%proc.name user=%user.name
+        container=%container.name image=%container.image.repository)
+      priority: ERROR
+      tags: [credentials, T1003, T1552]
+
+    - rule: Unexpected Large Data Transfer Egress
+      desc: >
+        Detects unusually large outbound data transfers from containers,
+        which may indicate data exfiltration.
+      condition: >
+        outbound and
+        container and
+        fd.net.bytes_out > 104857600 and
+        not fd.sip.name contains "googleapis.com" and
+        not fd.sip.name contains "google.com"
+      output: >
+        Large data egress from container
+        (bytes=%fd.net.bytes_out proc=%proc.name dst_ip=%fd.sip
+        container=%container.name image=%container.image.repository)
+      priority: WARNING
+      tags: [network, exfiltration, T1041]
+
+    - rule: Container Shell Spawned
+      desc: >
+        Detects an interactive shell being spawned in a running container,
+        which is unusual in production and may indicate attacker access.
+      condition: >
+        spawned_process and
+        container and
+        proc.name in (bash, sh, zsh, fish, dash) and
+        proc.pname in (docker, containerd-shim, kubectl, runc) and
+        not proc.cmdline contains "-c "
+      output: >
+        Interactive shell spawned in container
+        (user=%user.name shell=%proc.name parent=%proc.pname
+        container=%container.name image=%container.image.repository)
+      priority: WARNING
+      tags: [shell, T1059, T1609]

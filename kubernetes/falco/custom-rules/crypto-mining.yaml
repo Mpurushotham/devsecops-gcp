@@ -1,0 +1,43 @@
+customRules:
+  crypto_mining_rules.yaml: |-
+    - list: crypto_mining_processes
+      items: [xmrig, minerd, cgminer, bfgminer, cpuminer, ethminer, nbminer, teamredminer]
+
+    - list: crypto_mining_domains
+      items:
+        - pool.minexmr.com
+        - xmrpool.eu
+        - supportxmr.com
+        - nanopool.org
+        - 2miners.com
+
+    - rule: Cryptocurrency Mining Process Detected
+      desc: Detects known crypto mining binaries running in a container.
+      condition: >
+        spawned_process and
+        container and
+        (proc.name in (crypto_mining_processes) or
+         proc.cmdline contains "stratum+tcp://" or
+         proc.cmdline contains "stratum2+tcp://" or
+         proc.cmdline contains "--donate-level")
+      output: >
+        Crypto mining process detected
+        (user=%user.name proc=%proc.name pid=%proc.pid
+        cmdline=%proc.cmdline container=%container.name
+        image=%container.image.repository)
+      priority: CRITICAL
+      tags: [crypto-mining, T1496, mitre]
+
+    - rule: Outbound Connection to Mining Pool
+      desc: Detects network connections to known crypto mining pool domains/ports.
+      condition: >
+        outbound and
+        container and
+        (fd.sport in (3333, 4444, 5555, 7777, 9999, 14444, 45700) or
+         fd.sip.name in (crypto_mining_domains))
+      output: >
+        Outbound connection to crypto mining pool
+        (proc=%proc.name ip=%fd.sip port=%fd.sport
+        container=%container.name image=%container.image.repository)
+      priority: CRITICAL
+      tags: [crypto-mining, network, T1496]

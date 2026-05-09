@@ -1,0 +1,57 @@
+customRules:
+  privilege_escalation_rules.yaml: |-
+    - rule: Sudo or Su Execution in Container
+      desc: Detects sudo or su execution inside containers.
+      condition: >
+        spawned_process and
+        container and
+        proc.name in (sudo, su)
+      output: >
+        Privilege escalation attempt via sudo/su in container
+        (user=%user.name proc=%proc.name cmdline=%proc.cmdline
+        container=%container.name image=%container.image.repository)
+      priority: WARNING
+      tags: [privilege-escalation, T1548]
+
+    - rule: setuid or setgid Bit Set
+      desc: Detects attempts to set the setuid or setgid bit on a file.
+      condition: >
+        open_write and
+        container and
+        (fd.name contains "chmod" or
+         evt.type = chmod and
+         (evt.arg.mode contains "S_ISUID" or evt.arg.mode contains "S_ISGID"))
+      output: >
+        setuid/setgid bit set on file
+        (file=%fd.name proc=%proc.name user=%user.name
+        container=%container.name)
+      priority: WARNING
+      tags: [privilege-escalation, T1548.001]
+
+    - rule: Container Namespace Escape Attempt
+      desc: Detects processes attempting to break out of container namespaces.
+      condition: >
+        spawned_process and
+        container and
+        proc.name in (nsenter, unshare) and
+        proc.args contains "--target 1"
+      output: >
+        Container namespace escape attempt
+        (proc=%proc.name args=%proc.args user=%user.name
+        container=%container.name image=%container.image.repository)
+      priority: CRITICAL
+      tags: [container-escape, T1611]
+
+    - rule: Write to /proc Filesystem from Container
+      desc: Detects writes to /proc from inside a container, which may indicate kernel exploitation.
+      condition: >
+        open_write and
+        container and
+        fd.name startswith "/proc/" and
+        not proc.name in (kubelet, containerd)
+      output: >
+        Write to /proc from container
+        (file=%fd.name proc=%proc.name user=%user.name
+        container=%container.name)
+      priority: CRITICAL
+      tags: [T1611, kernel, container-escape]

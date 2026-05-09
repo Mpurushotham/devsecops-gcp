@@ -1,0 +1,25 @@
+# Prowler configuration for CIS GCP Benchmark 2.0 + SOC 2
+# Run: prowler gcp --config-file compliance/prowler/prowler-config.yaml
+
+# Output configuration
+output_formats:
+  - sarif
+  - html
+  - json
+output_directory: compliance/reports/
+
+# Compliance frameworks to check
+compliance:
+  - cis_gcp_2.0
+  - soc2
+
+# Logging
+log_level: WARNING
+log_file: compliance/reports/prowler.log
+
+# Mute these check IDs (known accepted risks — document your reasoning)
+# mutelist:
+#   - gcp_iam_no_service_account_admin_privileges  # Accepted: terraform SA needs elevated permissions
+
+# Severity filter — only report HIGH and CRITICAL in CI
+severity_threshold: medium

@@ -1,0 +1,105 @@
+name: "08 - Terraform Apply"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "terraform/environments/**"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  apply-dev:
+    name: "Apply — dev"
+    runs-on: ubuntu-24.04
+    environment: dev
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.9"
+
+      - name: Authenticate to GCP via WIF
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          # Apply SA has branch-pinned attribute_condition: assertion.ref == 'refs/heads/main'
+          service_account: ${{ vars.TERRAFORM_APPLY_SA_DEV }}
+
+      - name: Terraform Init
+        working-directory: terraform/environments/dev
+        run: terraform init -input=false
+
+      - name: Terraform Apply
+        working-directory: terraform/environments/dev
+        run: |
+          terraform apply \
+            -var-file="terraform.tfvars" \
+            -auto-approve \
+            -input=false
+
+  apply-staging:
+    name: "Apply — staging"
+    needs: apply-dev
+    runs-on: ubuntu-24.04
+    environment: staging  # requires 1 reviewer + 30-min wait in GitHub Environments settings
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.9"
+
+      - name: Authenticate to GCP via WIF
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.TERRAFORM_APPLY_SA_STAGING }}
+
+      - name: Terraform Init
+        working-directory: terraform/environments/staging
+        run: terraform init -input=false
+
+      - name: Terraform Apply
+        working-directory: terraform/environments/staging
+        run: |
+          terraform apply \
+            -var-file="terraform.tfvars" \
+            -auto-approve \
+            -input=false
+
+  apply-prod:
+    name: "Apply — prod"
+    needs: apply-staging
+    runs-on: ubuntu-24.04
+    environment: prod  # requires 2 reviewers + 60-min wait; branch = main only
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.9"
+
+      - name: Authenticate to GCP via WIF
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.TERRAFORM_APPLY_SA_PROD }}
+
+      - name: Terraform Init
+        working-directory: terraform/environments/prod
+        run: terraform init -input=false
+
+      - name: Terraform Apply
+        working-directory: terraform/environments/prod
+        run: |
+          terraform apply \
+            -var-file="terraform.tfvars" \
+            -auto-approve \
+            -input=false

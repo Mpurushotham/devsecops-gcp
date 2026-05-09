@@ -1,0 +1,97 @@
+name: "07 - Terraform Plan"
+
+on:
+  pull_request:
+    paths:
+      - "terraform/**"
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+jobs:
+  plan:
+    name: "Plan — ${{ matrix.env }}"
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [dev, staging, prod]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.9"
+          terraform_wrapper: true
+
+      - name: Authenticate to GCP via WIF
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars[format('TERRAFORM_SA_{0}', upper(matrix.env))] }}
+
+      - name: Terraform Init
+        id: init
+        working-directory: terraform/environments/${{ matrix.env }}
+        run: terraform init -input=false
+
+      - name: Terraform Format Check
+        id: fmt
+        working-directory: terraform/environments/${{ matrix.env }}
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        id: validate
+        working-directory: terraform/environments/${{ matrix.env }}
+        run: terraform validate -no-color
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: terraform/environments/${{ matrix.env }}
+        run: |
+          terraform plan \
+            -var-file="terraform.tfvars" \
+            -out=tfplan \
+            -no-color \
+            -detailed-exitcode \
+            -input=false
+        continue-on-error: true
+
+      - name: Comment plan on PR
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: ${{ steps.plan.outputs.stdout }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `## Terraform Plan — \`${{ matrix.env }}\`
+
+            #### Init: \`${{ steps.init.outcome }}\`
+            #### Format: \`${{ steps.fmt.outcome }}\`
+            #### Validate: \`${{ steps.validate.outcome }}\`
+            #### Plan: \`${{ steps.plan.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`terraform
+            ${process.env.PLAN}
+            \`\`\`
+
+            </details>
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
+
+      - name: Fail if plan failed
+        if: steps.plan.outcome == 'failure'
+        run: exit 1

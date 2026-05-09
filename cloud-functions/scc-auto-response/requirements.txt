@@ -1,0 +1,10 @@
+functions-framework==3.8.1
+google-cloud-securitycenter==1.29.0
+google-cloud-storage==2.18.0
+google-cloud-compute==1.18.0
+google-cloud-resource-manager==1.12.4
+google-cloud-iam==2.15.1
+google-cloud-logging==3.10.0
+google-cloud-secret-manager==2.20.0
+google-auth==2.29.0
+requests==2.32.3

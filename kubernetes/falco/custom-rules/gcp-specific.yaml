@@ -1,0 +1,58 @@
+customRules:
+  gcp_specific_rules.yaml: |-
+    - rule: GKE Metadata Server Access from Unexpected Process
+      desc: >
+        Detects access to the GKE metadata server (169.254.169.254) from processes
+        other than the GKE metadata server proxy. Workload Identity should prevent
+        direct metadata access, but this catches misconfigurations.
+      condition: >
+        outbound and
+        fd.sip = "169.254.169.254" and
+        not proc.name in (google_metadata, kubelet, containerd, pause)
+      output: >
+        Unexpected metadata server access
+        (user=%user.name proc=%proc.name pid=%proc.pid
+        container=%container.name image=%container.image.repository)
+      priority: WARNING
+      tags: [gcp, metadata-server, T1552.005, CIS-5-3]
+
+    - rule: GCP Credential File Access in Container
+      desc: Detects reads of GCP credential files inside containers.
+      condition: >
+        open_read and
+        container and
+        (fd.name startswith "/home/" and fd.name contains ".config/gcloud") or
+        fd.name startswith "/root/.config/gcloud" or
+        fd.name contains "application_default_credentials.json"
+        and not proc.name in (gcloud, python3, node)
+      output: >
+        GCP credential file accessed in container
+        (file=%fd.name proc=%proc.name user=%user.name
+        container=%container.name image=%container.image.repository)
+      priority: ERROR
+      tags: [gcp, credentials, T1552, CIS-4-3]
+
+    - rule: Unexpected kubectl in Container
+      desc: Detects kubectl execution inside a running container (potential lateral movement).
+      condition: >
+        spawned_process and
+        container and
+        proc.name = "kubectl"
+      output: >
+        kubectl executed inside container
+        (user=%user.name proc=%proc.name pid=%proc.pid
+        args=%proc.args container=%container.name)
+      priority: WARNING
+      tags: [gcp, kubernetes, T1610]
+
+    - rule: Service Account Key File Created
+      desc: Detects creation of GCP service account key JSON files.
+      condition: >
+        open_write and
+        (fd.name endswith "-key.json" or
+         fd.name contains "service-account" and fd.name endswith ".json")
+      output: >
+        Service account key file written
+        (file=%fd.name proc=%proc.name user=%user.name container=%container.name)
+      priority: ERROR
+      tags: [gcp, iam, T1552.001]

@@ -1,0 +1,22 @@
+# Gatekeeper install manifest — generated from the official release.
+# Pin to a specific version; update deliberately after testing.
+# Source: https://raw.githubusercontent.com/open-policy-agent/gatekeeper/v3.17.1/deploy/gatekeeper.yaml
+#
+# Deploy with:
+#   kubectl apply -f kubernetes/gatekeeper/install/gatekeeper.yaml
+#
+# Then apply constraint templates before constraints:
+#   kubectl apply -f kubernetes/gatekeeper/constraint-templates/
+#   kubectl apply -f kubernetes/gatekeeper/constraints/
+#
+# Monitor violations:
+#   kubectl get constraints -A
+#   kubectl describe <constraint-kind> <constraint-name>
+
+# Fetch the pinned manifest at deploy time to avoid storing a 2000-line file in git.
+# In CI (workflow 08), the apply step runs:
+#
+#   VERSION=v3.17.1
+#   kubectl apply -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/${VERSION}/deploy/gatekeeper.yaml
+#   kubectl rollout status deployment/gatekeeper-controller-manager -n gatekeeper-system --timeout=120s
+#   kubectl rollout status deployment/gatekeeper-audit -n gatekeeper-system --timeout=120s

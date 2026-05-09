@@ -1,0 +1,23 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sAllowedRepos
+metadata:
+  name: allowed-repos
+spec:
+  enforcementAction: deny
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    excludedNamespaces:
+      - kube-system
+      - gatekeeper-system
+  parameters:
+    repos:
+      # Replace with your Artifact Registry URL
+      - "us-central1-docker.pkg.dev/"
+      # Allow GKE system images
+      - "gcr.io/google-containers/"
+      - "gcr.io/google_containers/"
+      - "gcr.io/stackdriver-agents/"
+      - "gke.gcr.io/"
+      - "registry.k8s.io/"

@@ -1,0 +1,8 @@
+# Copy this file to terraform.tfvars and fill in your values.
+# terraform.tfvars is gitignored — never commit it.
+
+org_id             = "123456789012"
+billing_account_id = "ABCDEF-123456-ABCDEF"
+github_org         = "your-github-org"
+github_repo        = "devsecops-gcp"
+region             = "us-central1"

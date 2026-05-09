@@ -1,0 +1,132 @@
+name: "06 - Compliance (CIS GCP + SOC 2)"
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: dev
+        type: choice
+        options: [dev, staging, prod]
+  push:
+    branches: [main]
+    paths:
+      - "compliance/**"
+      - "terraform/**"
+
+permissions:
+  contents: read
+  security-events: write
+  id-token: write
+
+jobs:
+  prowler:
+    name: "Prowler — CIS GCP 2.0 + SOC2"
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        env: [dev]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP via WIF
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.PROWLER_SA }}
+
+      - name: Install Prowler
+        run: pip install prowler==4.3.0
+
+      - name: Run Prowler
+        run: |
+          prowler gcp \
+            --compliance cis_gcp_2.0 \
+            --compliance soc2 \
+            --output-formats sarif html json \
+            --output-directory compliance/reports/ \
+            --project-ids "${{ vars[format('GCP_PROJECT_{0}', upper(matrix.env))] }}" \
+            --log-level WARNING
+        continue-on-error: true
+
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: compliance/reports/
+          category: prowler-${{ matrix.env }}
+
+      - name: Upload compliance report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prowler-report-${{ matrix.env }}-${{ github.run_id }}
+          path: compliance/reports/
+          retention-days: 90
+
+  opa-terraform-plan:
+    name: "OPA — Terraform Plan Policies"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.9"
+
+      - name: Authenticate to GCP via WIF
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.TERRAFORM_SA_DEV }}
+
+      - name: Generate Terraform plan JSON
+        working-directory: terraform/environments/dev
+        run: |
+          terraform init -input=false
+          terraform plan -out=tfplan.binary -input=false
+          terraform show -json tfplan.binary > tfplan.json
+
+      - name: Install conftest
+        run: |
+          wget -q https://github.com/open-policy-agent/conftest/releases/download/v0.55.0/conftest_0.55.0_Linux_x86_64.tar.gz
+          tar xzf conftest_0.55.0_Linux_x86_64.tar.gz
+          sudo mv conftest /usr/local/bin/
+
+      - name: Run OPA policies against plan
+        working-directory: terraform/environments/dev
+        run: |
+          conftest test tfplan.json \
+            --policy ../../compliance/opa-policies/gcp/ \
+            --output sarif \
+            --output-file opa-results.sarif
+        continue-on-error: true
+
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: terraform/environments/dev/opa-results.sarif
+          category: opa-terraform
+
+  gatekeeper-policy-tests:
+    name: "OPA Gatekeeper — Policy Unit Tests"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: open-policy-agent/setup-opa@v2
+        with:
+          version: latest
+
+      - name: Run Gatekeeper constraint template tests
+        run: |
+          opa test kubernetes/gatekeeper/constraint-templates/ \
+            -v \
+            --format=pretty
+
+      - name: Run GCP OPA policy tests
+        run: |
+          opa test compliance/opa-policies/ \
+            -v \
+            --format=pretty

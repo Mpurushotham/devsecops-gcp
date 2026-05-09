@@ -1,0 +1,30 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8shostnamespace
+  annotations:
+    description: Prevents pods from sharing the host network, PID, or IPC namespaces.
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sHostNamespace
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8shostnamespace
+
+        violation[{"msg": msg}] {
+          input.review.object.spec.hostPID == true
+          msg := "Sharing the host PID namespace is not allowed"
+        }
+
+        violation[{"msg": msg}] {
+          input.review.object.spec.hostIPC == true
+          msg := "Sharing the host IPC namespace is not allowed"
+        }
+
+        violation[{"msg": msg}] {
+          input.review.object.spec.hostNetwork == true
+          msg := "Sharing the host network namespace is not allowed"
+        }

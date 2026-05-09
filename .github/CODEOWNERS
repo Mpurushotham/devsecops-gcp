@@ -1,0 +1,17 @@
+# Global — all changes require at least one review
+* @Mpurushotham
+
+# Terraform infrastructure changes require security team review
+/terraform/ @Mpurushotham
+/terraform/environments/prod/ @Mpurushotham
+
+# Security policies require security team review
+/compliance/ @Mpurushotham
+/kubernetes/gatekeeper/ @Mpurushotham
+/kubernetes/network-policies/ @Mpurushotham
+
+# GitHub Actions workflows require security review
+/.github/workflows/ @Mpurushotham
+
+# Cloud Functions require security review
+/cloud-functions/ @Mpurushotham

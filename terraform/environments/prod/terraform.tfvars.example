@@ -1,0 +1,26 @@
+org_id             = "123456789012"
+billing_account_id = "ABCDEF-123456-ABCDEF"
+region             = "us-central1"
+notification_email = "security-team@example.com"
+github_org         = "your-github-org"
+github_repo        = "devsecops-gcp"
+
+# Folder IDs from the folder-hierarchy module outputs
+prod_folder_id     = "folders/REPLACE"
+security_folder_id = "folders/REPLACE"
+
+function_source_bucket = "REPLACE_WITH_TFSTATE_BUCKET"
+
+# Access Context Manager policy name (created once per org)
+access_policy_name = "REPLACE_WITH_ACCESS_POLICY_NUMBER"
+
+# CIDR of the bastion/jump host that can reach the private GKE API endpoint
+bastion_cidr = "10.0.0.5/32"
+
+# Identities permitted to access VPC-SC perimeter resources
+vpc_sc_allowed_members = [
+  "serviceAccount:github-terraform-apply@SEED_PROJECT.iam.gserviceaccount.com",
+]
+
+# PagerDuty integration key (sensitive — set via TF_VAR_pagerduty_key env var in CI)
+# pagerduty_key = ""
