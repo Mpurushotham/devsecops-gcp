@@ -47,11 +47,11 @@ module "networking" {
   master_cidr  = "172.16.2.0/28"
 
   # Prod: VPC-SC ENFORCED (after DRY_RUN validation in staging)
-  enable_vpc_sc = true
-  vpc_sc_mode   = "ENFORCE"
-  access_policy_name             = var.access_policy_name
-  vpc_sc_perimeter_resources     = [module.prod_project.project_number]
-  vpc_sc_access_level_members    = var.vpc_sc_allowed_members
+  enable_vpc_sc               = true
+  vpc_sc_mode                 = "ENFORCE"
+  access_policy_name          = var.access_policy_name
+  vpc_sc_perimeter_resources  = [module.prod_project.project_number]
+  vpc_sc_access_level_members = var.vpc_sc_allowed_members
 }
 
 # ─── Security Baseline (prod: DENY_ALL Binary Auth) ────────────────────────────

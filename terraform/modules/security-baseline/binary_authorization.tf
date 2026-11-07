@@ -40,12 +40,7 @@ resource "google_binary_authorization_policy" "policy" {
     evaluation_mode  = var.binary_auth_mode == "DENY_ALL" ? "REQUIRE_ATTESTATION" : "ALWAYS_ALLOW"
     enforcement_mode = var.binary_auth_mode == "DENY_ALL" ? "ENFORCED_BLOCK_AND_AUDIT_LOG" : "DRYRUN_AUDIT_LOG_ONLY"
 
-    dynamic "require_attestations_by" {
-      for_each = var.binary_auth_mode == "DENY_ALL" ? [1] : []
-      content {
-        attestor = google_binary_authorization_attestor.build_verified.name
-      }
-    }
+    require_attestations_by = var.binary_auth_mode == "DENY_ALL" ? [google_binary_authorization_attestor.build_verified.name] : []
   }
 
   # Always allow GKE system images

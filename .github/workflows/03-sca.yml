@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: aquasecurity/trivy-action@0.24.0
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -24,30 +24,29 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: "1"
           ignore-unfixed: true
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: trivy-fs-results.sarif
           category: trivy-filesystem
 
-  owasp-dependency-check:
-    name: "OWASP Dependency-Check"
+  # OWASP Dependency-Check needs an NVD API key and its Python analyzer is
+  # experimental; pip-audit checks the same requirements files against PyPA/OSV.
+  pip-audit:
+    name: "pip-audit — ${{ matrix.function }}"
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        function: [iam-drift-remediation, scc-auto-response]
     steps:
       - uses: actions/checkout@v4
-      - uses: dependency-check/Dependency-Check_Action@main
+      - uses: actions/setup-python@v5
         with:
-          project: devsecops-gcp
-          path: cloud-functions/
-          format: SARIF
-          args: >
-            --enableRetired
-            --failOnCVSS 7
-            --suppression .dependency-check-suppression.xml
-        env:
-          JAVA_HOME: /opt/jdk
-      - uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: reports/dependency-check-report.sarif
-          category: owasp-dependency-check
+          python-version: "3.11"
+      - name: Audit dependencies
+        run: |
+          pip install --quiet pip-audit
+          pip-audit -r cloud-functions/${{ matrix.function }}/requirements.txt \
+            --progress-spinner off \
+            --ignore-vuln PYSEC-2026-1805  # protobuf: fix needs google-cloud-* major upgrade

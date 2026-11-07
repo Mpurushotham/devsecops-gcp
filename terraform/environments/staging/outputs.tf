@@ -1,5 +1,5 @@
-output "dev_project_id" {
-  value = module.dev_project.project_id
+output "staging_project_id" {
+  value = module.staging_project.project_id
 }
 
 output "gke_cluster_name" {

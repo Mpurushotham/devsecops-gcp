@@ -31,7 +31,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ vars.WIF_PROVIDER }}
-          service_account: ${{ vars[format('TERRAFORM_SA_{0}', upper(matrix.env))] }}
+          service_account: ${{ vars[format('TERRAFORM_SA_{0}', matrix.env)] }}
 
       - name: Terraform Init
         id: init

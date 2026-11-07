@@ -35,8 +35,8 @@ jobs:
             dockerfile: cloud-functions/scc-auto-response/Dockerfile
 
     env:
-      IMAGE_NAME: ${{ env.AR_HOST }}/${{ vars.GCP_PROJECT_ID }}/${{ vars.AR_REPO }}/${{ matrix.app.name }}
-      IMAGE_TAG: ${{ env.AR_HOST }}/${{ vars.GCP_PROJECT_ID }}/${{ vars.AR_REPO }}/${{ matrix.app.name }}:${{ github.sha }}
+      IMAGE_NAME: us-central1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.AR_REPO }}/${{ matrix.app.name }}
+      IMAGE_TAG: us-central1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.AR_REPO }}/${{ matrix.app.name }}:${{ github.sha }}
 
     steps:
       - uses: actions/checkout@v4
@@ -56,7 +56,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: "Trivy — Container image scan"
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.IMAGE_TAG }}
           format: sarif
@@ -64,7 +64,7 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: "1"
           ignore-unfixed: true
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: trivy-image-results.sarif
@@ -77,7 +77,7 @@ jobs:
           fail-build: true
           severity-cutoff: high
           output-format: sarif
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: results.sarif

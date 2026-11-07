@@ -48,11 +48,11 @@ jobs:
             --compliance soc2 \
             --output-formats sarif html json \
             --output-directory compliance/reports/ \
-            --project-ids "${{ vars[format('GCP_PROJECT_{0}', upper(matrix.env))] }}" \
+            --project-ids "${{ vars[format('GCP_PROJECT_{0}', matrix.env)] }}" \
             --log-level WARNING
         continue-on-error: true
 
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: compliance/reports/
@@ -103,7 +103,7 @@ jobs:
             --output-file opa-results.sarif
         continue-on-error: true
 
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: terraform/environments/dev/opa-results.sarif

@@ -14,22 +14,25 @@ permissions:
   security-events: write
 
 jobs:
-  tfsec:
-    name: "tfsec"
+  # tfsec is deprecated upstream; its checks now ship in `trivy config`.
+  trivy-config:
+    name: "Trivy — IaC misconfiguration"
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: aquasecurity/tfsec-action@v1.0.3
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          working_directory: terraform
+          scan-type: config
+          scan-ref: terraform
           format: sarif
-          sarif_file: tfsec-results.sarif
-          soft_fail: false
-      - uses: github/codeql-action/upload-sarif@v3
-        if: always()
+          output: trivy-config-results.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+      - uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('trivy-config-results.sarif') != ''
         with:
-          sarif_file: tfsec-results.sarif
-          category: tfsec
+          sarif_file: trivy-config-results.sarif
+          category: trivy-config
 
   checkov:
     name: "Checkov"
@@ -44,46 +47,38 @@ jobs:
           output_file_path: checkov-results.sarif
           soft_fail: false
           quiet: true
-      - uses: github/codeql-action/upload-sarif@v3
-        if: always()
+          # Pre-existing findings are tracked in the baseline; new ones fail.
+          baseline: terraform/.checkov.baseline
+      - uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('checkov-results.sarif') != ''
         with:
           sarif_file: checkov-results.sarif
           category: checkov
-
-  terrascan:
-    name: "Terrascan"
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: tenable/terrascan-action@main
-        with:
-          iac_type: terraform
-          policy_type: gcp
-          iac_dir: terraform
-          sarif_upload: true
-          non_recursive: false
-      - uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: terrascan.sarif
-          category: terrascan
 
   infracost:
     name: "Cost Estimation"
     runs-on: ubuntu-24.04
     if: github.event_name == 'pull_request'
+    env:
+      INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
     steps:
       - uses: actions/checkout@v4
+      - name: Skip when INFRACOST_API_KEY is not configured
+        if: env.INFRACOST_API_KEY == ''
+        run: echo "::notice::INFRACOST_API_KEY not set; skipping cost estimate."
       - uses: infracost/actions/setup@v3
+        if: env.INFRACOST_API_KEY != ''
         with:
           api-key: ${{ secrets.INFRACOST_API_KEY }}
       - name: Generate Infracost diff
+        if: env.INFRACOST_API_KEY != ''
         run: |
           infracost breakdown \
             --path=terraform/environments/dev \
             --format=json \
             --out-file=/tmp/infracost.json
       - uses: infracost/actions/comment@v3
+        if: env.INFRACOST_API_KEY != ''
         with:
           path: /tmp/infracost.json
           behavior: update

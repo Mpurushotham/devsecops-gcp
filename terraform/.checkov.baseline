@@ -1,0 +1,172 @@
+{
+    "failed_checks": [
+        {
+            "file": "/bootstrap/main.tf",
+            "findings": [
+                {
+                    "resource": "google_iam_workload_identity_pool_provider.github",
+                    "check_ids": [
+                        "CKV_GCP_125"
+                    ]
+                },
+                {
+                    "resource": "google_iam_workload_identity_pool_provider.github_main",
+                    "check_ids": [
+                        "CKV_GCP_125"
+                    ]
+                },
+                {
+                    "resource": "google_organization_iam_member.prowler_viewer",
+                    "check_ids": [
+                        "CKV_GCP_115"
+                    ]
+                },
+                {
+                    "resource": "google_organization_iam_member.terraform_apply_scc_admin",
+                    "check_ids": [
+                        "CKV_GCP_45"
+                    ]
+                },
+                {
+                    "resource": "google_project.seed",
+                    "check_ids": [
+                        "CKV2_GCP_5"
+                    ]
+                },
+                {
+                    "resource": "google_storage_bucket.tfstate",
+                    "check_ids": [
+                        "CKV_GCP_62"
+                    ]
+                }
+            ]
+        },
+        {
+            "file": "/modules/gke/cluster.tf",
+            "findings": [
+                {
+                    "resource": "module.gke.google_container_cluster.primary",
+                    "check_ids": [
+                        "CKV_GCP_61",
+                        "CKV_GCP_65",
+                        "CKV_GCP_69"
+                    ]
+                }
+            ]
+        },
+        {
+            "file": "/modules/gke/node_pools.tf",
+            "findings": [
+                {
+                    "resource": "module.gke.google_container_node_pool.application",
+                    "check_ids": [
+                        "CKV_GCP_68",
+                        "CKV_GCP_69",
+                        "CKV_GCP_72"
+                    ]
+                },
+                {
+                    "resource": "module.gke.google_container_node_pool.system",
+                    "check_ids": [
+                        "CKV_GCP_68",
+                        "CKV_GCP_69",
+                        "CKV_GCP_72"
+                    ]
+                }
+            ]
+        },
+        {
+            "file": "/modules/observability/log_sinks.tf",
+            "findings": [
+                {
+                    "resource": "module.observability.google_bigquery_dataset.audit_logs",
+                    "check_ids": [
+                        "CKV_GCP_81"
+                    ]
+                },
+                {
+                    "resource": "module.observability.google_storage_bucket.log_archive",
+                    "check_ids": [
+                        "CKV_GCP_62",
+                        "CKV_GCP_78"
+                    ]
+                }
+            ]
+        },
+        {
+            "file": "/modules/project-factory/apis.tf",
+            "findings": [
+                {
+                    "resource": "module.dev_project.google_compute_network.default_vpc",
+                    "check_ids": [
+                        "CKV2_GCP_18"
+                    ]
+                },
+                {
+                    "resource": "module.prod_project.google_compute_network.default_vpc",
+                    "check_ids": [
+                        "CKV2_GCP_18"
+                    ]
+                },
+                {
+                    "resource": "module.security_project.google_compute_network.default_vpc",
+                    "check_ids": [
+                        "CKV2_GCP_18"
+                    ]
+                },
+                {
+                    "resource": "module.staging_project.google_compute_network.default_vpc",
+                    "check_ids": [
+                        "CKV2_GCP_18"
+                    ]
+                }
+            ]
+        },
+        {
+            "file": "/modules/project-factory/main.tf",
+            "findings": [
+                {
+                    "resource": "module.dev_project.google_project.project",
+                    "check_ids": [
+                        "CKV2_GCP_5"
+                    ]
+                },
+                {
+                    "resource": "module.prod_project.google_project.project",
+                    "check_ids": [
+                        "CKV2_GCP_5"
+                    ]
+                },
+                {
+                    "resource": "module.security_project.google_project.project",
+                    "check_ids": [
+                        "CKV2_GCP_5"
+                    ]
+                },
+                {
+                    "resource": "module.staging_project.google_project.project",
+                    "check_ids": [
+                        "CKV2_GCP_5"
+                    ]
+                }
+            ]
+        },
+        {
+            "file": "/modules/scc-response/pubsub.tf",
+            "findings": [
+                {
+                    "resource": "module.scc_response.google_pubsub_topic.falco_alerts",
+                    "check_ids": [
+                        "CKV_GCP_83"
+                    ]
+                },
+                {
+                    "resource": "module.scc_response.google_pubsub_topic.scc_dlq",
+                    "check_ids": [
+                        "CKV_GCP_83"
+                    ]
+                }
+            ]
+        }
+    ]
+}

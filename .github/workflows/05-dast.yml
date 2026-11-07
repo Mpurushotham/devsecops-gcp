@@ -32,7 +32,7 @@ jobs:
           fail_action: true
           allow_issue_writing: true
 
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: zap-results.sarif
@@ -53,7 +53,7 @@ jobs:
           fail_action: true
           cmd_options: "-a"
 
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: zap-results.sarif
