@@ -25,6 +25,7 @@ jobs:
           scan-type: config
           scan-ref: terraform
           format: sarif
+          limit-severities-for-sarif: true
           output: trivy-config-results.sarif
           severity: CRITICAL,HIGH
           exit-code: "1"
@@ -59,6 +60,9 @@ jobs:
     name: "Cost Estimation"
     runs-on: ubuntu-24.04
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
     env:
       INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
     steps:
@@ -77,8 +81,16 @@ jobs:
             --path=terraform/environments/dev \
             --format=json \
             --out-file=/tmp/infracost.json
-      - uses: infracost/actions/comment@v3
+      # infracost/actions/comment does not exist; the CLI posts the comment.
+      - name: Post Infracost comment
         if: env.INFRACOST_API_KEY != ''
-        with:
-          path: /tmp/infracost.json
-          behavior: update
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          infracost comment github \
+            --path=/tmp/infracost.json \
+            --repo="$GITHUB_REPOSITORY" \
+            --pull-request="$PR_NUMBER" \
+            --github-token="$GITHUB_TOKEN" \
+            --behavior=update
