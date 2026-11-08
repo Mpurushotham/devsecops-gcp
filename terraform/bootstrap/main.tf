@@ -16,6 +16,8 @@ resource "google_project" "seed" {
 
   deletion_policy = "PREVENT"
 
+  auto_create_network = false
+
   labels = {
     environment = "bootstrap"
     managed-by  = "terraform"

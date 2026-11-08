@@ -43,18 +43,18 @@ module "networking" {
   master_cidr  = "172.16.1.0/28"
 
   # Staging: enable VPC-SC in DRY_RUN
-  enable_vpc_sc = true
-  vpc_sc_mode   = "DRY_RUN"
-  access_policy_name = var.access_policy_name
+  enable_vpc_sc              = true
+  vpc_sc_mode                = "DRY_RUN"
+  access_policy_name         = var.access_policy_name
   vpc_sc_perimeter_resources = [module.staging_project.project_number]
 }
 
 module "security_baseline" {
   source = "../../modules/security-baseline"
 
-  project_id   = module.staging_project.project_id
-  region       = local.region
-  environment  = local.environment
+  project_id       = module.staging_project.project_id
+  region           = local.region
+  environment      = local.environment
   binary_auth_mode = "WARN"
 
   depends_on = [module.networking]

@@ -9,6 +9,8 @@ resource "google_project" "project" {
   billing_account = var.billing_account_id
   deletion_policy = "PREVENT"
 
+  auto_create_network = false
+
   labels = merge(
     {
       environment = var.environment

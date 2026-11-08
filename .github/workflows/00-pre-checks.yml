@@ -40,4 +40,29 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      # terraform_docs/tflint need extra binaries; validate runs in its own job.
+      # no-commit-to-branch is a local guard and always fails on main in CI.
       - uses: pre-commit/action@v3.0.1
+        env:
+          SKIP: no-commit-to-branch,terraform_docs,terraform_tflint,terraform_validate
+
+  terraform-validate:
+    name: "Terraform Validate"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: Validate every root and module
+        run: |
+          set -euo pipefail
+          for dir in $(find terraform -name '*.tf' -not -path '*/.terraform/*' -exec dirname {} \; | sort -u); do
+            echo "::group::$dir"
+            terraform -chdir="$dir" init -backend=false -input=false -no-color >/dev/null
+            terraform -chdir="$dir" validate -no-color
+            echo "::endgroup::"
+          done

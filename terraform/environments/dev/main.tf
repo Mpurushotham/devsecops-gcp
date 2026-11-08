@@ -73,9 +73,9 @@ module "networking" {
 module "security_baseline" {
   source = "../../modules/security-baseline"
 
-  project_id   = module.dev_project.project_id
-  region       = local.region
-  environment  = local.environment
+  project_id  = module.dev_project.project_id
+  region      = local.region
+  environment = local.environment
 
   # Dev uses WARN mode — images that fail attestation get a warning but are still admitted
   binary_auth_mode = "WARN"
@@ -104,9 +104,9 @@ module "gke" {
   cluster_name = "dev-cluster"
   environment  = local.environment
 
-  vpc_self_link    = module.networking.vpc_self_link
-  subnet_self_link = module.networking.subnet_self_link
-  pod_range_name   = module.networking.pod_range_name
+  vpc_self_link      = module.networking.vpc_self_link
+  subnet_self_link   = module.networking.subnet_self_link
+  pod_range_name     = module.networking.pod_range_name
   service_range_name = module.networking.service_range_name
 
   # Dev: public endpoint allowed for easier access
@@ -133,12 +133,12 @@ module "gke" {
 module "scc_response" {
   source = "../../modules/scc-response"
 
-  project_id             = module.security_project.project_id
-  region                 = local.region
-  org_id                 = var.org_id
-  kms_key_id             = module.security_baseline.gke_kms_key_id
-  function_source_bucket = var.function_source_bucket
-  function_source_object = "scc-auto-response.zip"
+  project_id              = module.security_project.project_id
+  region                  = local.region
+  org_id                  = var.org_id
+  kms_key_id              = module.security_baseline.gke_kms_key_id
+  function_source_bucket  = var.function_source_bucket
+  function_source_object  = "scc-auto-response.zip"
   slack_webhook_secret_id = "scc-slack-webhook-url"
 }
 

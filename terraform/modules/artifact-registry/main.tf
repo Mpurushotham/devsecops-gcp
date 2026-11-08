@@ -1,7 +1,13 @@
 variable "project_id" { type = string }
-variable "region" { type = string; default = "us-central1" }
+variable "region" {
+  type    = string
+  default = "us-central1"
+}
 variable "environment" { type = string }
-variable "kms_key_id" { type = string; description = "KMS key ID for CMEK encryption" }
+variable "kms_key_id" {
+  type        = string
+  description = "KMS key ID for CMEK encryption"
+}
 
 resource "google_artifact_registry_repository" "containers" {
   provider = google-beta
